@@ -13,12 +13,12 @@ export default class Page extends EventedMixin(Base) {
     super(...arguments);
 
     this._frame = createFrame();
-
+    this._columns = 2;
     this._element.classList.add('page');
     this._element.appendChild(this._frame);
 
     window.addEventListener('resize', debounce(() => {
-      fitContent.call(this, this._frame);
+      fitContent.call(this, this._frame, this._columns);
     }, 100), false);
   }
 
@@ -30,6 +30,21 @@ export default class Page extends EventedMixin(Base) {
     }
     displaySpine.call(this, 0);
   }
+
+  zoomIn() {
+    // Stop zoom if ratio is grater than 2
+    if (this._displayRatio > 2) return;
+    zoom.call(this, Base.FONT_SCALE_MULTIPLIER);
+    this._displayRatio *= Base.FONT_SCALE_MULTIPLIER;
+  }
+
+  zoomOut() {
+    // Stop zoom if ratio is small than 2
+    if (this._displayRatio < 0.5) return;
+    zoom.call(this, 1.0/Base.FONT_SCALE_MULTIPLIER);
+    this._displayRatio /= Base.FONT_SCALE_MULTIPLIER;
+  }
+
 
   previous() {
     if (this._frame.contentWindow.scrollX <= 0) {
@@ -79,7 +94,10 @@ function displaySpine(spineItemIndex, position = 0) {
 
   return loadFrame.call(this, spineItem.href).then(frame => {
     this._contentHtml = frame.contentDocument.querySelector('html');
+    zoom.call(this, this._displayRatio);
+
     this._frame.contentWindow.scrollBy(Math.round(this._contentHtml.scrollWidth * position / 100), 0);
+
     frame.style['opacity'] = '1';
 
     computeCfi(this._currentSpineItemCfi, this._contentHtml);
@@ -130,7 +148,7 @@ function loadFrame(href) {
       self.trigger('load', self._frame.contentDocument);
       self._frame.removeEventListener('load', frameOnLoad, true);
 
-      fitContent.call(self, self._frame);
+      fitContent.call(self, self._frame, self._columns);
 
       resolve(self._frame);
     }
@@ -142,9 +160,9 @@ function loadFrame(href) {
 /**
  * @param frame
  */
-function fitContent(frame) {
+function fitContent(frame, columns) {
   const html = frame.contentDocument.querySelector('html');
-  html.style['column-count'] = '2';
+  html.style['column-count'] = columns;
   html.style['column-gap'] = `${COLUMN_GAP}px`;
   html.style['break-inside'] = 'avoid';
   html.style['height'] = `${frame.clientHeight}px`;
@@ -152,7 +170,7 @@ function fitContent(frame) {
 
   // position is not quite good yet
   const rawScrollLeft = html.scrollWidth * this._position / 100;
-  frame.contentWindow.scrollTo(rawScrollLeft - (rawScrollLeft % (html.clientWidth + COLUMN_GAP)), 0);
+  frame.contentWindow.scrollTo(rawScrollLeft - (rawScrollLeft % (html.clientWidth + (columns-1)*COLUMN_GAP)), 0);
 }
 
 /**
@@ -189,4 +207,25 @@ function computeCfi(cfiBase, content) {
   }, false);
 
   return epubCfi.generateCfiFromElement(firstVisibleElement, cfiBase);
+}
+
+function zoom(multiplier) {
+  const fontSizes = [];
+  const all = this._frame.contentWindow.document.body.getElementsByTagName('*');
+  for (var i = -1, l = all.length; ++i < l;) {
+    var elem = all[i];
+    if (elem.style['font-size'] !== undefined) {
+      var style = window.getComputedStyle(elem, null).getPropertyValue('font-size');
+      var fontSize = parseFloat(style);
+      fontSizes[i] = (fontSize *  multiplier) + 'px';
+    }
+    else {
+      fontSizes[i] = undefined;
+    }
+  }
+  for (var i = -1, l = all.length; ++i < l;) {
+    if (fontSizes[i] !== undefined) {
+      all[i].style.fontSize = fontSizes[i];
+    }
+  }
 }
