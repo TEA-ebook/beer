@@ -210,6 +210,7 @@ function computeCfi(cfiBase, content) {
 }
 
 function zoom(multiplier) {
+  if (multiplier == 1) return;
   const fontSizes = [];
   const all = this._frame.contentWindow.document.body.getElementsByTagName('*');
   for (var i = -1, l = all.length; ++i < l;) {
