@@ -10,10 +10,15 @@ const container = document.querySelector('main');
 // - 9782824704043_jim-lindien.epub
 
 Beer.init()
-  .then(() => Beer.withBook('/epubs/asterix.epub'), console.error)
+  .then(() => Beer.withBook('/epubs/5552003314585.epub'), console.error)
   .then(reader => {
-    const display = reader.displayBook(container);
-    //const display = reader.displayBook(container, { cfi: 'epubcfi(/6/8[id004]!/4/24/1:0)' }); // display with CFI provided
+    const displayOptions = {
+      mode: 'page',
+      background:'black',
+      color:'white',
+      margin:'30px'
+    };
+    const display = reader.displayBook(container, displayOptions);
 
     // listen to events in main page frame
     listenToKeyboard(document, display);

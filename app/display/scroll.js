@@ -14,9 +14,9 @@ export default class Scroll extends EventedMixin(Base) {
     this._frames = [];
   }
 
-  display(book) {
+  display(book, displayOptions) {
     super.display(book);
-
+    this._displayOptions = displayOptions;
     this._useScale = book.format === 'pre-paginated';
     this._currentSpineItemIndex = -1;
 

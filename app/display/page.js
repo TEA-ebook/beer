@@ -13,8 +13,6 @@ export default class Page extends EventedMixin(Base) {
     super(...arguments);
 
     this._frame = createFrame();
-
-    this._element.classList.add('page');
     this._element.appendChild(this._frame);
 
     window.addEventListener('resize', debounce(() => {
@@ -22,10 +20,17 @@ export default class Page extends EventedMixin(Base) {
     }, 100), false);
   }
 
-  display(book, cfi = null) {
+  display(book, displayOptions) {
     super.display(book);
-    if (cfi) {
-      displaySpineFromCfi.call(this, cfi);
+    this._displayOptions = displayOptions;
+    if (this._displayOptions.margin) {
+      this._element.style['padding'] = this._displayOptions.margin;
+    }
+    if (this._displayOptions.background) {
+      this._element.style['background-color'] = this._displayOptions.background;
+    }
+    if (this._displayOptions.cfi) {
+      displaySpineFromCfi.call(this, this._displayOptions.cfi);
       return;
     }
     displaySpine.call(this, 0);
@@ -149,6 +154,9 @@ function fitContent(frame) {
   html.style['break-inside'] = 'avoid';
   html.style['height'] = `${frame.clientHeight}px`;
   html.style['overflow'] = 'hidden';
+  if (this._displayOptions.color) {
+    html.style['color'] = this._displayOptions.color;
+  }
 
   // position is not quite good yet
   const rawScrollLeft = html.scrollWidth * this._position / 100;

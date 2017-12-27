@@ -83,7 +83,7 @@ export default class Beer {
     } else {
       readerDisplay = new Page(htmlElement);
     }
-    readerDisplay.display(this._book, this._displayOptions.cfi || null);
+    readerDisplay.display(this._book, this._displayOptions);
 
     return readerDisplay;
   }
@@ -142,7 +142,10 @@ function sendEpubToSw(book) {
 
 function getDefaultDisplayOptions() {
   return {
-    mode: 'page'
+    mode: 'page',
+    background:'white',
+    color:'black',
+    margin:'10px'
   };
 }
 
