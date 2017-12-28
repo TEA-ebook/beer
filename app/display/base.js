@@ -55,5 +55,4 @@ class Base {
 
 Base.ZOOM_SCALE_MULTIPLIER = 1.5;
 Base.FONT_SCALE_MULTIPLIER = 1.1;
-
 export default Base;
