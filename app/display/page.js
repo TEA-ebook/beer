@@ -197,7 +197,7 @@ function computePosition(cfiBase, frame) {
   const displayHtml = frame.contentDocument.querySelector('html');
   const cfi = computeCfi(cfiBase, displayHtml);
   console.debug(epubCfi.parse(cfi));
-  return 100 * (frame.contentDocument.body.scrollLeft + displayHtml.clientWidth) / (displayHtml.scrollWidth + displayHtml.clientWidth);
+  return 100 * frame.contentWindow.scrollX / displayHtml.scrollWidth;
 }
 
 function computeCfi(cfiBase, content) {
