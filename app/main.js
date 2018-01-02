@@ -10,7 +10,7 @@ const container = document.querySelector('main');
 // - 9782824704043_jim-lindien.epub
 
 Beer.init()
-  .then(() => Beer.withBook('/epubs/5552003314585.epub'), console.error)
+  .then(() => Beer.withBook('/epubs/file.epub'), console.error)
   .then(reader => {
     const displayOptions = {mode:'scroll'};
     const display = reader.displayBook(container, displayOptions);
