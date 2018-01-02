@@ -3,7 +3,7 @@ self.importScripts('/jszip.js');
 const config = {
   version: 'suzuki-5',
   epubPattern: /___\/([\-\w]+)\/(.*)$/,
-  cachePattern: /\.(?:css|js|jpg|png|svg|ttf|woff|eot|otf|html|xhtml|mp3|m4a)$/,
+  cachePattern: /\.(?:css|js|jpg|png|svg|ttf|woff|eot|otf|html|xhtml|mp3|mp4|m4a)$/,
   debug: true
 };
 
@@ -17,12 +17,19 @@ const mimeTypeMap = {
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
   mp3: 'audio/mpeg',
+  mp4: 'video/mp4',
   ncx: 'application/x-dtbncx+xml',
   opf: 'application/oebps-package+xml',
   png: 'image/png',
   svg: 'image/svg+xml',
   xhtml: 'application/xhtml+xml'
 };
+
+const decryptionMethods = {
+  'http://www.idpf.org/2008/embedding': unObfusqIdpf,
+  'http://ns.adobe.com/pdf/enc#RC': unObfusqAdobe
+}
+
 
 if (config.debug === false) {
   console.debug = function () {};
@@ -69,7 +76,8 @@ self.addEventListener('message', event => {
   }
 
   self.epubs[event.data.hash] = {
-    blob: event.data.blob
+    blob: event.data.blob,
+    encryptedItems: event.data.encryptedItems
   };
 });
 
@@ -142,6 +150,34 @@ function getEpubZip(epubHash) {
   });
 }
 
+function unObfuscteXor(data, prefix, key) {
+  const masklen = key.length;
+  var array = new Uint8Array(data);
+  for (var i = 0; i < prefix; i++) {
+    array[i] = (array[i] ^ (key[i % masklen]));
+  }
+  return array.buffer;
+}
+
+function unObfusqIdpf(data, key) {
+  const  prefixLength = 1040;
+  return unObfuscteXor(data, prefixLength, key)
+}
+
+function unObfusqAdobe(data, key) {
+  return data;
+}
+
+
+function Decrypt(epubHash, filePath, data) {
+  if (filePath in self.epubs[epubHash].encryptedItems) {
+    const encryptedItem = self.epubs[epubHash].encryptedItems[filePath];
+    console.debug(`[BEER-SW] decrypting ${filePath} from the epub file with ${encryptedItem.algorithm}`);
+    return decryptionMethods[encryptedItem.algorithm](data, encryptedItem.key);
+  }
+  return data;
+}
+
 function getFileInEpub(epubHash, filePath) {
   console.debug(`[BEER-SW] fetching ${filePath} from the epub file`);
   return getEpubZip(epubHash)
@@ -152,6 +188,7 @@ function getFileInEpub(epubHash, filePath) {
       }
       return zipFile.async('arraybuffer');
     })
+    .then(data => Decrypt(epubHash, filePath, data))
     .then(data => getZipResponse(getMimeTypeFromFileExtension(filePath), data));
 }
 
