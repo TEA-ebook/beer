@@ -161,11 +161,12 @@ function unObfuscteXor(data, prefix, key) {
 
 function unObfusqIdpf(data, key) {
   const  prefixLength = 1040;
-  return unObfuscteXor(data, prefixLength, key)
+  return unObfuscteXor(data, prefixLength, key.idpf)
 }
 
 function unObfusqAdobe(data, key) {
-  return data;
+  const  prefixLength = 1024;
+  return unObfuscteXor(data, prefixLength, key.adobe)
 }
 
 
