@@ -53,6 +53,6 @@ class Base {
   }
 }
 
-Base.ZOOM_SCALE_MULTIPLIER = 1.5;
+Base.ZOOM_SCALE_MULTIPLIER = 1.1;
 
 export default Base;

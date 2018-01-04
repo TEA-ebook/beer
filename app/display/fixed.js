@@ -19,7 +19,8 @@ export default class Fixed extends EventedMixin(Base) {
     super.display(book);
 
     this._frameCount = 1;
-    if (book.isSpreadAuto) {
+    /* TODO: take care of landscape/portrait */
+    if (book.isSpreadAuto || book.isSpreadBoth) {
       this._frameCount = 2;
     }
 
@@ -31,6 +32,7 @@ export default class Fixed extends EventedMixin(Base) {
     }
 
     this._currentSpineItemIndex = 0;
+    this._frameNextJump = this._frameCount;
     displaySpines.call(this);
   }
 
@@ -38,8 +40,11 @@ export default class Fixed extends EventedMixin(Base) {
    *
    */
   previous() {
-    if (this._currentSpineItemIndex > this.frameCount) {
-      this._currentSpineItemIndex -= this.frameCount;
+    if (this._currentSpineItemIndex > this._frameNextJump) {
+      this._currentSpineItemIndex -= this._frameNextJump;
+    }
+    else {
+      this._currentSpineItemIndex = 0;
     }
     displaySpines.call(this);
   }
@@ -48,7 +53,7 @@ export default class Fixed extends EventedMixin(Base) {
    *
    */
   next() {
-    this._currentSpineItemIndex += this.frameCount;
+    this._currentSpineItemIndex += this._frameNextJump;
     displaySpines.call(this);
   }
 
@@ -59,7 +64,7 @@ export default class Fixed extends EventedMixin(Base) {
     this._frames.forEach(frame => {
       const html = frame.contentWindow.document.querySelector('html');
 
-      frame.style['width'] = '0';
+      //frame.style['width'] = '0';
       html.style['transform'] = '';
 
       frame.style['width'] = `${Math.round(this._displayRatio * frame.contentDocument.body.scrollWidth)}px`;
@@ -94,14 +99,39 @@ function frameLoaded(frame) {
 function displaySpines() {
   const spineDisplayPromises = [];
 
-  let index = 0;
-  this._frames.forEach(frame => {
-    const spineItem = this._book.getSpineItem(this._currentSpineItemIndex + index);
-    if (spineItem) {
-      spineDisplayPromises.push(loadFrame(frame, this._book.hash, spineItem.href));
+  /* force positions */
+  if (this._book.isSpineForced(this._currentSpineItemIndex) && this._frameCount == 2) {
+    /* handle special case for 'first at right' or center item */
+    if (this._book.isSpineForcedRight(this._currentSpineItemIndex)) {
+      const spineItem = this._book.getSpineItem(this._currentSpineItemIndex);
+      spineDisplayPromises.push(loadFrame(this._frames[1], this._book.hash, spineItem.href));
+      spineDisplayPromises.push(clearFrame(this._frames[0]));
+      this._frameNextJump = 1;
     }
-    index++;
-  });
+    else if (this._book.isSpineForcedCenter(this._currentSpineItemIndex)) {
+      /* TODO: handle "alone in the center of the page" ugly case */
+      this._frameNextJump = 1;
+    }
+    else {
+      /* first is forced left, the second is forced right */
+      let spineItem = this._book.getSpineItem(this._currentSpineItemIndex);
+      spineDisplayPromises.push(loadFrame(this._frames[0], this._book.hash, spineItem.href));
+      spineItem = this._book.getSpineItem(this._currentSpineItemIndex + 1);
+      spineDisplayPromises.push(loadFrame(this._frames[1], this._book.hash, spineItem.href));
+      this._frameNextJump = 2;
+    }
+  }
+  else {
+    let index = 0;
+    this._frames.forEach(frame => {
+      const spineItem = this._book.getSpineItem(this._currentSpineItemIndex + index);
+      if (spineItem) {
+        spineDisplayPromises.push(loadFrame(frame, this._book.hash, spineItem.href));
+      }
+      index++;
+    });
+    this._frameNextJump = index;
+  }
 
   return Promise.all(spineDisplayPromises);
 }
@@ -127,11 +157,28 @@ function loadFrame(frame, hash, href) {
   });
 }
 
+function clearFrame(frame) {
+  return new Promise(resolve => {
+    frame.style['opacity'] = '0';
+    frame.setAttribute('src', 'about:blank');
+    resolve(frame);
+  });
+}
+
 function fitContent(frame) {
   const document = frame.contentWindow.document;
   const body = document.querySelector('body');
 
-  this._displayRatio = frame.clientHeight / body.clientHeight;
+  /* compute display ratio */
+  if (this._book._orientation == 'portrait') {
+    this._displayRatio = frame.clientHeight / body.clientHeight;
+  }
+  else if (this._book._orientation == 'landscape') {
+    this._displayRatio = frame.clientWidth / body.clientWidth;
+  }
+  else {
+    this._displayRatio = Math.min(frame.clientHeight / body.clientHeight, frame.clientWidth / body.clientWidth);
+  }
 
   this.redraw(this);
 }

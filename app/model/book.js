@@ -12,10 +12,30 @@ class Book {
 
     this._format = extractFormat(metadata);
     this._spread = extractRenditionSpread(metadata);
+    this._orientation = extractRenditionOrientation(metadata);
   }
 
   getSpineItem(index) {
     return this._spineItems[index];
+  }
+
+  isSpineForcedLeft(index) {
+    return this._spineItems[index] && this._spineItems[index].properties.indexOf('page-spread-left') > -1;
+  }
+
+  isSpineForcedRight(index) {
+    return this._spineItems[index] && this._spineItems[index].properties.indexOf('page-spread-right') > -1;
+  }
+
+  isSpineForcedCenter(index) {
+    return this._spineItems[index] && this._spineItems[index].properties.indexOf('rendition:page-spread-center') > -1;
+  }
+
+  isSpineForced(index) {
+    return this._spineItems[index] && (
+      this._spineItems[index].properties.indexOf('page-spread-left') > -1 ||
+      this._spineItems[index].properties.indexOf('page-spread-right') > -1 ||
+      this._spineItems[index].properties.indexOf('rendition:page-spread-center') > -1);
   }
 
   get spineItemsCount() {
@@ -50,6 +70,18 @@ class Book {
     return this._spread === Book.RENDITION_SPREAD_AUTO;
   }
 
+  get isSpreadBoth() {
+    return this._spread === Book.RENDITION_SPREAD_BOTH;
+  }
+
+  get isSpreadPortrait() {
+    return this._spread === Book.RENDITION_SPREAD_PORTRAIT;
+  }
+
+  get isSpreadLandscape() {
+    return this._spread === Book.RENDITION_SPREAD_LANDSCAPE;
+  }
+
   get spineItems() {
     return this._spineItems;
   }
@@ -64,6 +96,13 @@ Book.FORMAT_FIXED_LAYOUT = 'pre-paginated';
 
 Book.RENDITION_SPREAD_NONE = 'none';
 Book.RENDITION_SPREAD_AUTO = 'auto';
+Book.RENDITION_SPREAD_BOTH = 'both';
+Book.RENDITION_SPREAD_PORTRAIT = 'portrait';
+Book.RENDITION_SPREAD_LANDSCAPE = 'landscape';
+
+Book.RENDITION_ORIENTATION_PORTRAIT = 'portrait';
+Book.RENDITION_ORIENTATION_LANDSCAPE = 'landscape';
+Book.RENDITION_ORIENTATION_AUTO = 'auto';
 
 export default Book;
 
@@ -81,4 +120,12 @@ function extractRenditionSpread(metadata) {
     return metaRenditionSpread['__text'];
   }
   return Book.RENDITION_SPREAD_AUTO;
+}
+
+function extractRenditionOrientation(metadata) {
+  const metaRenditionOrientation = metadata['meta'].find(data => data['_property'] === 'rendition:orientation');
+  if (metaRenditionOrientation) {
+    return metaRenditionOrientation['__text'];
+  }
+  return Book.RENDITION_ORIENTATION_AUTO;
 }

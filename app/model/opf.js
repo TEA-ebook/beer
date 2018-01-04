@@ -18,13 +18,23 @@ export default class Opf {
     }
 
     const spineNodeIndex = epubCfi.indexOfElement(xmlDoc.querySelector('spine'));
+    const spineItemsRefs = x2js.xml2json(xmlDoc.querySelector('spine')).itemref;
+    const spineItemsRefList = spineItemsRefs.map(item => item['_idref']);
 
-    const spineItemsRefs = x2js.xml2json(xmlDoc.querySelector('spine')).itemref.map(item => item['_idref']);
+    const spineItemsRefsProperties = {};
+    spineItemsRefs.forEach(item => spineItemsRefsProperties[item['_idref']] = item['_properties']);
+
     opf.spineItems = x2js.xml2json(xmlDoc.querySelector('manifest')).item
-      .filter(item => spineItemsRefs.indexOf(item['_id']) >= 0)
+      .filter(item => spineItemsRefList.indexOf(item['_id']) >= 0)
       .map(spineItemXml => {
         const spineItem = SpineItem.fromXml(spineItemXml);
-        spineItem.cfi = epubCfi.generateChapterComponent(spineNodeIndex, spineItemsRefs.indexOf(spineItem.id), spineItem.id);
+        spineItem.cfi = epubCfi.generateChapterComponent(spineNodeIndex, spineItemsRefList.indexOf(spineItem.id), spineItem.id);
+        if (spineItemsRefsProperties[spineItem.id]) {
+          spineItem.properties = spineItemsRefsProperties[spineItem.id].split(' ');
+        }
+        else {
+          spineItem.properties = new Array(0);
+        }
         return spineItem;
       });
 
