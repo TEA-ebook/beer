@@ -24,13 +24,37 @@ export default class Fixed extends EventedMixin(Base) {
       this._frameCount = 2;
     }
 
+    if (this._frameCount == 1) {
+      const container= createFrame(0, 'center');
+      const frame = container.childNodes[0];
+      this._element.appendChild(container);
+      this._frames.push(frame);
+      frame.addEventListener('load', () => frameLoaded.call(this, frame));
+    }
+    else if (this._frameCount == 2) {
+      const left = createFrame(0, 'left');
+      const leftFrame = left.childNodes[0];
+      this._element.appendChild(left);
+      this._frames.push(leftFrame);
+      leftFrame.addEventListener('load', () => frameLoaded.call(this, leftFrame));
+
+      const right = createFrame(1, 'right');
+      const rightFrame = right.childNodes[0];
+      this._element.appendChild(right);
+      this._frames.push(rightFrame);
+      rightFrame.addEventListener('load', () => frameLoaded.call(this, rightFrame));
+    }
+
+    else {
+    }
+/* 
     for (let i = 0; i < this._frameCount; i++) {
       const frame = createFrame(i);
       this._frames.push(frame);
       this._element.appendChild(frame);
       frame.addEventListener('load', () => frameLoaded.call(this, frame));
     }
-
+*/
     this._currentSpineItemIndex = 0;
     this._frameNextJump = this._frameCount;
     displaySpines.call(this);
@@ -63,15 +87,17 @@ export default class Fixed extends EventedMixin(Base) {
   redraw() {
     this._frames.forEach(frame => {
       const html = frame.contentWindow.document.querySelector('html');
+      const ratio = frame.getAttribute('data-ratio');
 
       //frame.style['width'] = '0';
       html.style['transform'] = '';
-
-      frame.style['width'] = `${Math.round(this._displayRatio * frame.contentDocument.body.scrollWidth)}px`;
-
-      html.style['overflow-y'] = 'hidden';
+      if (ratio) { 
+        frame.style['width'] = `${Math.round(ratio * frame.contentDocument.body.scrollWidth)}px`;
+        frame.style['height'] = `${Math.round(ratio * frame.contentDocument.body.scrollHeight)}px`;
+        html.style['transform'] = `scale(${ratio})`;
+      }
+      html.style['overflow'] = 'hidden';
       html.style['transform-origin'] = '0 0 0';
-      html.style['transform'] = `scale(${this._displayRatio})`;
 
       frame.style['opacity'] = '1';
     });
@@ -136,12 +162,16 @@ function displaySpines() {
   return Promise.all(spineDisplayPromises);
 }
 
-function createFrame(index) {
+function createFrame(index, type) {
   const frame = document.createElement('iframe');
+  const div = document.createElement('div');
+  div.classList.add(type);
+  div.appendChild(frame);
+
   frame.id = `beer-epub-frame-${index}`;
   frame.src = 'about:blank';
 
-  return frame;
+  return div;
 }
 
 /**
@@ -166,19 +196,31 @@ function clearFrame(frame) {
 }
 
 function fitContent(frame) {
+  const viewSize = {};
   const document = frame.contentWindow.document;
   const body = document.querySelector('body');
+  const container = frame.parentElement;
 
-  /* compute display ratio */
-  if (this._book._orientation == 'portrait') {
-    this._displayRatio = frame.clientHeight / body.clientHeight;
-  }
-  else if (this._book._orientation == 'landscape') {
-    this._displayRatio = frame.clientWidth / body.clientWidth;
+  if (body) {
+    viewSize['height'] = body.clientHeight;
+    viewSize['width'] = body.clientWidth;
   }
   else {
-    this._displayRatio = Math.min(frame.clientHeight / body.clientHeight, frame.clientWidth / body.clientWidth);
+    viewSize['height'] = container.clientHeight;
+    viewSize['width'] = container.clientWidth;
   }
 
+  /* first try to get size from viewport meta header */
+  const viewport  = document.querySelector('head meta[name="viewport"]');
+  if (viewport && viewport.content) {
+    const viewportValues = viewport.content.trim().match(/(width|height)=(\d+),(width|height)=(\d+)/);
+    if (viewportValues.length == 5) {
+      viewSize[viewportValues[1]] = parseInt(viewportValues[2]);
+      viewSize[viewportValues[3]] = parseInt(viewportValues[4]);
+    }
+  }
+  this._displayRatio = Math.min(container.clientHeight / viewSize['height'], container.clientWidth / viewSize['width']);
+
+  frame.setAttribute('data-ratio', this._displayRatio);
   this.redraw(this);
 }
