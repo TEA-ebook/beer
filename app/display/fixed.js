@@ -87,15 +87,11 @@ export default class Fixed extends EventedMixin(Base) {
   redraw() {
     this._frames.forEach(frame => {
       const html = frame.contentWindow.document.querySelector('html');
-      const ratio = frame.getAttribute('data-ratio');
-
       //frame.style['width'] = '0';
       html.style['transform'] = '';
-      if (ratio) { 
-        frame.style['width'] = `${Math.round(ratio * frame.contentDocument.body.scrollWidth)}px`;
-        frame.style['height'] = `${Math.round(ratio * frame.contentDocument.body.scrollHeight)}px`;
-        html.style['transform'] = `scale(${ratio})`;
-      }
+      frame.style['width'] = `${Math.round(this._displayRatio * frame.contentDocument.body.scrollWidth)}px`;
+      frame.style['height'] = `${Math.round(this._displayRatio * frame.contentDocument.body.scrollHeight)}px`;
+      html.style['transform'] = `scale(${this._displayRatio})`;
       html.style['overflow'] = 'hidden';
       html.style['transform-origin'] = '0 0 0';
 
@@ -220,7 +216,5 @@ function fitContent(frame) {
     }
   }
   this._displayRatio = Math.min(container.clientHeight / viewSize['height'], container.clientWidth / viewSize['width']);
-
-  frame.setAttribute('data-ratio', this._displayRatio);
   this.redraw(this);
 }
