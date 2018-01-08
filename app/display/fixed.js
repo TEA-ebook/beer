@@ -25,36 +25,16 @@ export default class Fixed extends EventedMixin(Base) {
     }
 
     if (this._frameCount == 1) {
-      const container= createFrame(0, 'center');
-      const frame = container.childNodes[0];
-      this._element.appendChild(container);
-      this._frames.push(frame);
-      frame.addEventListener('load', () => frameLoaded.call(this, frame));
+      createFrame.call(this, 'center');
     }
     else if (this._frameCount == 2) {
-      const left = createFrame(0, 'left');
-      const leftFrame = left.childNodes[0];
-      this._element.appendChild(left);
-      this._frames.push(leftFrame);
-      leftFrame.addEventListener('load', () => frameLoaded.call(this, leftFrame));
-
-      const right = createFrame(1, 'right');
-      const rightFrame = right.childNodes[0];
-      this._element.appendChild(right);
-      this._frames.push(rightFrame);
-      rightFrame.addEventListener('load', () => frameLoaded.call(this, rightFrame));
+      createFrame.call(this, 'left');
+      createFrame.call(this, 'right');
     }
 
     else {
+      /* TODO add error handler */
     }
-/* 
-    for (let i = 0; i < this._frameCount; i++) {
-      const frame = createFrame(i);
-      this._frames.push(frame);
-      this._element.appendChild(frame);
-      frame.addEventListener('load', () => frameLoaded.call(this, frame));
-    }
-*/
     this._currentSpineItemIndex = 0;
     this._frameNextJump = this._frameCount;
     displaySpines.call(this);
@@ -158,15 +138,18 @@ function displaySpines() {
   return Promise.all(spineDisplayPromises);
 }
 
-function createFrame(index, type) {
+function createFrame(type) {
   const frame = document.createElement('iframe');
   const div = document.createElement('div');
   div.classList.add(type);
   div.appendChild(frame);
-
-  frame.id = `beer-epub-frame-${index}`;
+  this._element.appendChild(div);
+  this._frames.push(frame);
+ 
+  frame.id = `beer-epub-frame-${type}`;
   frame.src = 'about:blank';
 
+  frame.addEventListener('load', () => frameLoaded.call(this, frame));
   return div;
 }
 
